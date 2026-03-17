@@ -3301,6 +3301,28 @@
       return local.toISOString().split('T')[0];
     }
 
+    // ✅ แบบถูก — ใช้ no-cors + text/plain
+    async function loginUser(id, password) {
+      const scriptURL = "https://script.google.com/macros/s/xxxxx/exec";
+    
+      try {
+        const response = await fetch(scriptURL, {
+          method: "POST",
+          mode: "no-cors",                              // ✅ เพิ่มตรงนี้
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8" // ✅ เปลี่ยน content-type
+          },
+          body: JSON.stringify({ action: "loginUser", id, password })
+        });
+    
+        // ⚠️ no-cors จะไม่ได้ response กลับมา ต้องใช้วิธีอื่นในการรับค่า
+        console.log("ส่งข้อมูลสำเร็จ");
+    
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    }
+
     // ========================================
     // LOGIN FUNCTIONS
     // ========================================
@@ -3371,7 +3393,7 @@
     const MAX_LOGIN_RETRY = 1;
     const LOGIN_TIMEOUT_MS = 3000;
 
-    function handleLogin(autoRetry = false) {
+    async function handleLogin(autoRetry = false) {
       if (isLoggingIn) return;
       isLoggingIn = true;
     
@@ -3387,44 +3409,23 @@
       hideAlert();
       setLoading('btn-login', 'login-spinner', 'login-btn-text', true, 'กำลังเข้าสู่ระบบ...');
     
-      let finished = false;
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwR5OJaWl5-uPNNPLvt1pBcsyzHImwvWflJ0CJfDcQ0hY0cynC9EaBy1_pv_fcjYKxP/exec";
     
-      const finishWithError = (title, msg) => {
-        finished = true;
-        isLoggingIn = false;
-        setLoading('btn-login', 'login-spinner', 'login-btn-text', false, 'เข้าสู่ระบบ');
-        showAlert('error', title, msg);
-      };
+      try {
+        const params = new URLSearchParams({ action: "loginUser", id, password: pass });
     
-      const timeoutId = setTimeout(() => {
-        if (finished) return;
-        isLoggingIn = false;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS);
     
-        if (loginRetryCount < MAX_LOGIN_RETRY) {
-          loginRetryCount++;
-          setLoading('btn-login', 'login-spinner', 'login-btn-text', true, 'กำลังลองใหม่...');
-          setTimeout(() => handleLogin(true), 300);
-          return;
-        }
+        const response = await fetch(`${SCRIPT_URL}?${params}`, {
+          method: "GET",
+          redirect: "follow",
+          signal: controller.signal
+        });
     
-        loginRetryCount = 0;
-        finishWithError('เข้าสู่ระบบไม่สำเร็จ', 'การเชื่อมต่อช้าเกินไป กรุณากดเข้าสู่ระบบใหม่อีกครั้ง');
-      }, LOGIN_TIMEOUT_MS);
-    
-      // ✅ เปลี่ยนตรงนี้
-      fetch("https://script.google.com/macros/s/AKfycbwR5OJaWl5-uPNNPLvt1pBcsyzHImwvWflJ0CJfDcQ0hY0cynC9EaBy1_pv_fcjYKxP/exec", {
-        method: "POST",
-        body: JSON.stringify({
-          action: "loginUser",
-          id: id,
-          password: pass
-        })
-      })
-      .then(res => res.json())
-      .then(res => {
-        if (finished) return;
-        finished = true;
         clearTimeout(timeoutId);
+    
+        const res = await response.json();
     
         if (!res?.success) {
           loginRetryCount = 0;
@@ -3434,26 +3435,34 @@
           return;
         }
     
+        // ✅ Login สำเร็จ
         loginRetryCount = 0;
-    
-        // ✅ session (เหมือนเดิม)
         sessionStorage.setItem('user', JSON.stringify(res.user || {}));
         sessionStorage.setItem('isLoggedIn', 'true');
-    
         preloadAllHolidays(res.user?.id);
-    
         showMainApp();
-      })
-      .catch(err => {
-        if (finished) return;
-        finished = true;
-        clearTimeout(timeoutId);
     
-        loginRetryCount = 0;
+      } catch (err) {
         isLoggingIn = false;
         setLoading('btn-login', 'login-spinner', 'login-btn-text', false, 'เข้าสู่ระบบ');
+    
+        // ⏱ Timeout → retry อัตโนมัติ
+        if (err.name === 'AbortError') {
+          if (loginRetryCount < MAX_LOGIN_RETRY) {
+            loginRetryCount++;
+            setLoading('btn-login', 'login-spinner', 'login-btn-text', true, `กำลังลองใหม่ (${loginRetryCount}/${MAX_LOGIN_RETRY})...`);
+            setTimeout(() => handleLogin(true), 300);
+            return;
+          }
+          loginRetryCount = 0;
+          showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', 'การเชื่อมต่อช้าเกินไป กรุณากดเข้าสู่ระบบใหม่อีกครั้ง');
+          return;
+        }
+    
+        // ❌ Error อื่นๆ
+        loginRetryCount = 0;
         showAlert('error', 'เชื่อมต่อไม่สำเร็จ', err?.message || String(err));
-      });
+      }
     }
 
     function handleRegister() {
