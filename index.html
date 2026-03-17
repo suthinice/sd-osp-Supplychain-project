@@ -3303,7 +3303,7 @@
 
     // ✅ แบบถูก — ใช้ no-cors + text/plain
     async function loginUser(id, password) {
-      const scriptURL = "https://script.google.com/macros/s/xxxxx/exec";
+      const scriptURL = "https://script.google.com/macros/s/AKfycbwunMyACS2DBN8_TvaHsha7Sgqy5_IYF7YKK1CBEFdnL_HVrNkUGg7GoNO8SE4CrK4s/exec";
     
       try {
         const response = await fetch(scriptURL, {
@@ -3409,7 +3409,7 @@
       hideAlert();
       setLoading('btn-login', 'login-spinner', 'login-btn-text', true, 'กำลังเข้าสู่ระบบ...');
     
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwR5OJaWl5-uPNNPLvt1pBcsyzHImwvWflJ0CJfDcQ0hY0cynC9EaBy1_pv_fcjYKxP/exec";
+      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwunMyACS2DBN8_TvaHsha7Sgqy5_IYF7YKK1CBEFdnL_HVrNkUGg7GoNO8SE4CrK4s/exec";
     
       try {
         const params = new URLSearchParams({ action: "loginUser", id, password: pass });
