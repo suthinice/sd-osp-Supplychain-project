@@ -3301,6 +3301,13 @@
       return local.toISOString().split('T')[0];
     }
 
+    function sendData(data) {
+      fetch("https://script.google.com/macros/s/AKfycbwR5OJaWl5-uPNNPLvt1pBcsyzHImwvWflJ0CJfDcQ0hY0cynC9EaBy1_pv_fcjYKxP/exec", {
+        method: "POST",
+        body: JSON.stringify(data)
+      })
+    }
+
     // ========================================
     // LOGIN FUNCTIONS
     // ========================================
