@@ -3383,80 +3383,86 @@
     function handleLogin(autoRetry = false) {
       if (isLoggingIn) return;
       isLoggingIn = true;
-
+    
       const id = document.getElementById('login-id')?.value?.trim();
       const pass = document.getElementById('login-pass')?.value || '';
-
+    
       if (!id || !pass) {
         isLoggingIn = false;
         showAlert('error', 'ข้อมูลไม่ครบ', 'กรุณากรอก ID และรหัสผ่าน');
         return;
       }
-
+    
       hideAlert();
       setLoading('btn-login', 'login-spinner', 'login-btn-text', true, 'กำลังเข้าสู่ระบบ...');
-
+    
       let finished = false;
-
+    
       const finishWithError = (title, msg) => {
         finished = true;
         isLoggingIn = false;
         setLoading('btn-login', 'login-spinner', 'login-btn-text', false, 'เข้าสู่ระบบ');
         showAlert('error', title, msg);
       };
-
+    
       const timeoutId = setTimeout(() => {
         if (finished) return;
         isLoggingIn = false;
-
+    
         if (loginRetryCount < MAX_LOGIN_RETRY) {
           loginRetryCount++;
           setLoading('btn-login', 'login-spinner', 'login-btn-text', true, 'กำลังลองใหม่...');
           setTimeout(() => handleLogin(true), 300);
           return;
         }
-
+    
         loginRetryCount = 0;
         finishWithError('เข้าสู่ระบบไม่สำเร็จ', 'การเชื่อมต่อช้าเกินไป กรุณากดเข้าสู่ระบบใหม่อีกครั้ง');
       }, LOGIN_TIMEOUT_MS);
-
-      google.script.run
-        .withSuccessHandler((res) => {
-          if (finished) return;
-          finished = true;
-          clearTimeout(timeoutId);
-
-          if (!res?.success) {
-            loginRetryCount = 0;
-            isLoggingIn = false;
-            setLoading('btn-login', 'login-spinner', 'login-btn-text', false, 'เข้าสู่ระบบ');
-            showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', res?.message || 'กรุณาลองใหม่');
-            return;
-          }
-
-          loginRetryCount = 0;
-
-          // ✅ บันทึก session (หายเมื่อปิด Browser)
-          sessionStorage.setItem('user', JSON.stringify(res.user || {}));
-          sessionStorage.setItem('isLoggedIn', 'true');
-
-          // ✅ Preload Holiday Cache ทุก Service ตอน Login สำเร็จ
-          preloadAllHolidays(res.user?.id);
-
-          // แสดงหน้าหลัก
-          showMainApp();
+    
+      // ✅ เปลี่ยนตรงนี้
+      fetch("https://script.google.com/macros/s/xxxxx/exec", {
+        method: "POST",
+        body: JSON.stringify({
+          action: "loginUser",
+          id: id,
+          password: pass
         })
-        .withFailureHandler((err) => {
-          if (finished) return;
-          finished = true;
-          clearTimeout(timeoutId);
-
+      })
+      .then(res => res.json())
+      .then(res => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeoutId);
+    
+        if (!res?.success) {
           loginRetryCount = 0;
           isLoggingIn = false;
           setLoading('btn-login', 'login-spinner', 'login-btn-text', false, 'เข้าสู่ระบบ');
-          showAlert('error', 'เชื่อมต่อไม่สำเร็จ', err?.message || String(err));
-        })
-        .loginUser(id, pass);
+          showAlert('error', 'เข้าสู่ระบบไม่สำเร็จ', res?.message || 'กรุณาลองใหม่');
+          return;
+        }
+    
+        loginRetryCount = 0;
+    
+        // ✅ session (เหมือนเดิม)
+        sessionStorage.setItem('user', JSON.stringify(res.user || {}));
+        sessionStorage.setItem('isLoggedIn', 'true');
+    
+        preloadAllHolidays(res.user?.id);
+    
+        showMainApp();
+      })
+      .catch(err => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeoutId);
+    
+        loginRetryCount = 0;
+        isLoggingIn = false;
+        setLoading('btn-login', 'login-spinner', 'login-btn-text', false, 'เข้าสู่ระบบ');
+        showAlert('error', 'เชื่อมต่อไม่สำเร็จ', err?.message || String(err));
+      });
     }
 
     function handleRegister() {
