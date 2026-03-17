@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ลงทะเบียนเข้าระบบ - OSP Booking</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    * {
+      font-family: 'Sarabun', sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
+    }
+    
+    .shake {
+      animation: shake 0.5s;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+      20%, 40%, 60%, 80% { transform: translateX(10px); }
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="container mx-auto px-4 py-8 max-w-md">
+    
+    <!-- Logo/Header -->
+    <div class="text-center mb-8">
+      <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl">
+        <i data-lucide="truck" class="w-10 h-10 text-violet-600"></i>
+      </div>
+      <h1 class="text-3xl font-black text-white mb-2">OSP Booking System</h1>
+      <p class="text-white/80 text-sm">ระบบลงทะเบียนเข้ารับ/ส่งสินค้า</p>
+    </div>
+    
+    <!-- Main Card -->
+    <div id="form-container" class="bg-white rounded-3xl shadow-2xl p-8">
+      
+      <!-- Step 1: Input Code -->
+      <div id="step-input" class="space-y-6">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="lock" class="w-8 h-8 text-violet-600"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-slate-800">กรอกรหัส 4 หลัก</h2>
+          <p class="text-sm text-slate-500 mt-2">ใส่รหัสที่ได้รับจากระบบจอง</p>
+        </div>
+        
+        <!-- Code Input -->
+        <div class="space-y-2">
+          <label class="text-sm font-bold text-slate-600 uppercase">รหัส 4 หลัก</label>
+          <input 
+            type="text" 
+            id="code-input" 
+            maxlength="4" 
+            inputmode="numeric"
+            pattern="[0-9]*"
+            placeholder="กรอกรหัส"
+            class="w-full px-4 py-4 text-center text-3xl font-black tracking-widest border-2 border-slate-300 rounded-xl focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition"
+          >
+        </div>
+        
+        <!-- Submit Button -->
+        <button 
+          onclick="verifyCode()" 
+          class="w-full py-4 bg-violet-600 text-white font-bold rounded-xl hover:bg-violet-700 active:scale-95 transition shadow-lg">
+          ตรวจสอบรหัส
+        </button>
+        
+        <!-- Error Message -->
+        <div id="error-message" class="hidden bg-red-50 border-2 border-red-200 rounded-xl p-4">
+          <div class="flex items-center gap-3">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0"></i>
+            <p class="text-sm text-red-800 font-semibold" id="error-text"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1.5: กรอกทะเบียนรถ -->
+      <div id="step-truck" class="hidden space-y-6">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="truck" class="w-8 h-8 text-violet-600"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-slate-800">กรอกทะเบียนรถ</h2>
+          <p class="text-sm text-slate-500 mt-2">กรุณายืนยันทะเบียนรถก่อนเข้าระบบ</p>
+        </div>
+
+        <div class="space-y-4">
+          <!-- ทะเบียนรถหลัก -->
+          <div class="space-y-2">
+            <label class="text-sm font-bold text-slate-600 uppercase">ทะเบียนรถ</label>
+            <input
+              type="text"
+              id="input-truck-no"
+              placeholder="เช่น กข-1234"
+              class="w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition uppercase"
+            >
+          </div>
+
+          <!-- ทะเบียนพ่วง (แสดงเฉพาะ 22W) -->
+          <div id="trailer-field" class="hidden space-y-2">
+            <label class="text-sm font-bold text-slate-600 uppercase">ทะเบียนพ่วง</label>
+            <input
+              type="text"
+              id="input-trailer-no"
+              placeholder="เช่น กข-5678"
+              class="w-full px-4 py-3 border-2 border-slate-300 rounded-xl focus:border-violet-500 focus:ring-4 focus:ring-violet-100 transition uppercase"
+            >
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div id="truck-error" class="hidden bg-red-50 border-2 border-red-200 rounded-xl p-4">
+          <div class="flex items-center gap-3">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0"></i>
+            <p class="text-sm text-red-800 font-semibold" id="truck-error-text"></p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            onclick="backToInputFromTruck()"
+            class="py-3 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300 active:scale-95 transition">
+            ย้อนกลับ
+          </button>
+          <button
+            onclick="submitTruckNo()"
+            class="py-3 bg-violet-600 text-white font-bold rounded-xl hover:bg-violet-700 active:scale-95 transition shadow-lg">
+            ถัดไป
+          </button>
+        </div>
+      </div>
+      
+      <!-- Step 2: Confirm Registration -->
+      <div id="step-confirm" class="hidden space-y-6">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i data-lucide="check-circle" class="w-8 h-8 text-green-600"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-slate-800">ยืนยันข้อมูล</h2>
+          <p class="text-sm text-slate-500 mt-2">กรุณาตรวจสอบข้อมูลก่อนลงทะเบียน</p>
+        </div>
+        
+        <!-- Booking Info -->
+        <div class="bg-slate-50 rounded-2xl p-6 space-y-4">
+          <!-- Service Type -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <span class="text-sm text-slate-500">สถานที่</span>
+            <span class="font-bold text-slate-800" id="confirm-service"></span>
+          </div>
+          
+          <!-- Driver Name -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <span class="text-sm text-slate-500">ชื่อ-นามสกุล</span>
+            <span class="font-bold text-slate-800" id="confirm-driver"></span>
+          </div>
+          
+          <!-- Shipment -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <span class="text-sm text-slate-500">Shipment</span>
+            <span class="font-bold text-slate-800" id="confirm-shipment"></span>
+          </div>
+          
+          <!-- Truck No -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <!-- ✅ เพิ่ม pb-3 border-b border-slate-200 -->
+            <span class="text-sm text-slate-500">ทะเบียนรถ</span>
+            <span class="font-bold text-slate-800" id="confirm-truck"></span>
+          </div>
+
+          <!-- Trailer No -->
+          <div id="confirm-trailer-row" class="hidden flex items-center justify-between">
+            <!-- ไม่ต้องมี border-b เพราะเป็น row สุดท้าย -->
+            <span class="text-sm text-slate-500">ทะเบียนพ่วง</span>
+            <span class="font-bold text-slate-800" id="confirm-trailer"></span>
+          </div>
+
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-3">
+          <button 
+            onclick="backToInput()" 
+            class="py-3 bg-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-300 active:scale-95 transition">
+            ยกเลิก
+          </button>
+          <button 
+            onclick="confirmRegister()" 
+            class="py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 active:scale-95 transition shadow-lg">
+            ลงทะเบียน Check-in
+          </button>
+        </div>
+      </div>
+      
+      <!-- Step 3: Success -->
+      <div id="step-success" class="hidden space-y-6 text-center">
+        <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto animate-pulse">
+          <i data-lucide="check-circle-2" class="w-16 h-16 text-green-600"></i>
+        </div>
+        
+        <div>
+          <h2 class="text-3xl font-black text-slate-800 mb-2">ลงทะเบียนสำเร็จ!</h2>
+          <p class="text-slate-600">คุณได้รับลำดับโหลดสินค้าที่</p>
+        </div>
+        
+        <!-- Queue Number -->
+        <div class="bg-gradient-to-br from-violet-500 to-purple-600 rounded-3xl p-8 shadow-2xl">
+          <p class="text-white/80 text-sm mb-2">ลำดับของคุณคือ</p>
+          <p class="text-white text-7xl font-black" id="queue-number">-</p>
+        </div>
+        
+        <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+          <p class="text-sm text-blue-800">
+            <strong>หมายเหตุ:</strong> กรุณาเข้าแถวตามลำดับที่ได้รับ
+          </p>
+        </div>
+        
+        <button 
+          onclick="resetForm()" 
+          class="w-full py-3 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-800 active:scale-95 transition">
+          ลงทะเบียนคันถัดไป
+        </button>
+      </div>
+      
+    </div>
+    
+    <!-- Footer -->
+    <div class="text-center mt-8 text-white/60 text-xs">
+      <p>© 2026 OSP Booking System</p>
+    </div>
+    
+  </div>
+  
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 text-center">
+      <div class="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="font-bold text-slate-700">กำลังตรวจสอบ...</p>
+    </div>
+  </div>
+  
+  <script>
+    // Global variable to store booking data
+    let currentBooking = null;
+    
+    // Initialize Lucide Icons
+    lucide.createIcons();
+    
+    // Auto-focus on code input
+    document.getElementById('code-input').focus();
+    
+    // Only allow numbers in code input
+    document.getElementById('code-input').addEventListener('input', function(e) {
+      this.value = this.value.replace(/[^0-9]/g, '');
+    });
+    
+    // Submit on Enter key
+    document.getElementById('code-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        verifyCode();
+      }
+    });
+    
+    /**
+     * ตรวจสอบรหัส 4 หลัก
+     */
+    function verifyCode() {
+      const code = document.getElementById('code-input').value.trim();
+      
+      // Validation
+      if (!code) {
+        showError('กรุณากรอกรหัส 4 หลัก');
+        return;
+      }
+      
+      if (code.length !== 4) {
+        showError('รหัสต้องเป็นตัวเลข 4 หลักเท่านั้น');
+        return;
+      }
+      
+      // Show loading
+      showLoading();
+      
+      // Call Apps Script to verify code
+      google.script.run
+        .withSuccessHandler(onVerifySuccess)
+        .withFailureHandler(onVerifyError)
+        .verifyRegisterCode(code);
+    }
+    
+    /**
+     * เมื่อตรวจสอบรหัสสำเร็จ
+     */
+    function onVerifySuccess(response) {
+      hideLoading();
+
+      if (!response.success) {
+        showError(response.message || 'รหัสไม่ถูกต้อง');
+        shakeInput();
+        return;
+      }
+
+      currentBooking = response.data;
+
+      // ✅ ไปหน้ากรอกทะเบียนก่อน แทนที่จะไป confirm เลย
+      showTruckStep();
+    }
+    
+    /**
+     * เมื่อตรวจสอบรหัสผิดพลาด
+     */
+    function onVerifyError(error) {
+      hideLoading();
+      showError('เกิดข้อผิดพลาด: ' + error.message);
+      shakeInput();
+    }
+    
+    /**
+     * แสดงหน้ายืนยันข้อมูล
+     */
+    function showConfirmStep() {
+      document.getElementById('step-input').classList.add('hidden');
+
+      document.getElementById('confirm-service').textContent = getServiceName(currentBooking.serviceType);
+      document.getElementById('confirm-driver').textContent = currentBooking.driverName || '-';
+      document.getElementById('confirm-shipment').textContent = currentBooking.shipmentNo || '-';
+      document.getElementById('confirm-truck').textContent = currentBooking.truckNo || '-';
+
+      // ✅ แสดงทะเบียนพ่วงถ้าเป็น 22W
+      const trailerRow = document.getElementById('confirm-trailer-row');
+      if (currentBooking.truckType === '22W' && trailerRow) {
+        trailerRow.classList.remove('hidden');
+        document.getElementById('confirm-trailer').textContent = currentBooking.trailerNo || '-';
+      } else if (trailerRow) {
+        trailerRow.classList.add('hidden');
+      }
+
+      document.getElementById('step-confirm').classList.remove('hidden');
+      lucide.createIcons();
+    }
+    
+    /**
+     * กลับไปกรอกรหัสใหม่
+     */
+    function backToInput() {
+      document.getElementById('step-confirm').classList.add('hidden');
+      document.getElementById('step-input').classList.remove('hidden');
+      document.getElementById('code-input').value = '';
+      document.getElementById('code-input').focus();
+      currentBooking = null;
+    }
+    
+    /**
+     * ยืนยันลงทะเบียน
+     */
+    function confirmRegister() {
+      if (!currentBooking) {
+        showError('ไม่พบข้อมูลการจอง');
+        return;
+      }
+      
+      showLoading();
+      
+      // Call Apps Script to register
+      google.script.run
+        .withSuccessHandler(onRegisterSuccess)
+        .withFailureHandler(onRegisterError)
+        .registerCheckIn(currentBooking);
+    }
+    
+    /**
+     * เมื่อลงทะเบียนสำเร็จ
+     */
+    function onRegisterSuccess(response) {
+      hideLoading();
+      
+      if (!response.success) {
+        showError(response.message || 'ลงทะเบียนไม่สำเร็จ');
+        return;
+      }
+      
+      // Show success step
+      document.getElementById('step-confirm').classList.add('hidden');
+      document.getElementById('step-success').classList.remove('hidden');
+      document.getElementById('queue-number').textContent = response.queueNumber || '-';
+      
+      lucide.createIcons();
+    }
+    
+    /**
+     * เมื่อลงทะเบียนผิดพลาด
+     */
+    function onRegisterError(error) {
+      hideLoading();
+      showError('เกิดข้อผิดพลาด: ' + error.message);
+    }
+    
+    /**
+     * รีเซ็ตฟอร์ม
+     */
+    function resetForm() {
+      document.getElementById('step-success').classList.add('hidden');
+      document.getElementById('step-input').classList.remove('hidden');
+      document.getElementById('code-input').value = '';
+      document.getElementById('code-input').focus();
+      hideError();
+      currentBooking = null;
+    }
+    
+    /**
+     * แสดง Error Message
+     */
+    function showError(message) {
+      const errorDiv = document.getElementById('error-message');
+      const errorText = document.getElementById('error-text');
+      errorText.textContent = message;
+      errorDiv.classList.remove('hidden');
+    }
+    
+    /**
+     * ซ่อน Error Message
+     */
+    function hideError() {
+      document.getElementById('error-message').classList.add('hidden');
+    }
+    
+    /**
+     * Shake Input Animation
+     */
+    function shakeInput() {
+      const input = document.getElementById('code-input');
+      input.classList.add('shake');
+      input.value = '';
+      setTimeout(() => {
+        input.classList.remove('shake');
+        input.focus();
+      }, 500);
+    }
+    
+    /**
+     * แสดง Loading Overlay
+     */
+    function showLoading() {
+      document.getElementById('loading-overlay').classList.remove('hidden');
+    }
+    
+    /**
+     * ซ่อน Loading Overlay
+     */
+    function hideLoading() {
+      document.getElementById('loading-overlay').classList.add('hidden');
+    }
+    
+    /**
+     * แปลง Service Type เป็นชื่อเต็ม
+     */
+    function getServiceName(type) {
+      const names = {
+        'AY': 'AY Domestic',
+        'RJ': 'RJ Domestic',
+        'AY_EXPORT': 'AY Export',
+        'AY_OEM': 'AY OEM & Transfer',
+        'AY_FOC': 'AY FOC, CN & Other'
+      };
+      return names[type] || type;
+    }
+
+    function showTruckStep() {
+      document.getElementById('step-input').classList.add('hidden');
+      document.getElementById('step-truck').classList.remove('hidden');
+
+      // ✅ ใส่ค่าว่างเสมอ ให้ User กรอกเอง
+      document.getElementById('input-truck-no').value = '';
+      document.getElementById('input-trailer-no').value = '';
+
+      // ✅ ถ้าเป็น 22W ให้แสดงช่องทะเบียนพ่วง
+      if (currentBooking.truckType === '22W') {
+        document.getElementById('trailer-field').classList.remove('hidden');
+      } else {
+        document.getElementById('trailer-field').classList.add('hidden');
+      }
+
+      document.getElementById('input-truck-no').focus();
+      lucide.createIcons();
+    }
+
+    function backToInputFromTruck() {
+      document.getElementById('step-truck').classList.add('hidden');
+      document.getElementById('step-input').classList.remove('hidden');
+      document.getElementById('code-input').value = '';
+      document.getElementById('code-input').focus();
+      currentBooking = null;
+    }
+
+    function submitTruckNo() {
+      const truckNo = document.getElementById('input-truck-no').value.trim();
+      const trailerNo = document.getElementById('input-trailer-no').value.trim();
+
+      if (!truckNo) {
+        document.getElementById('truck-error-text').textContent = 'กรุณากรอกทะเบียนรถ';
+        document.getElementById('truck-error').classList.remove('hidden');
+        return;
+      }
+
+      if (currentBooking.truckType === '22W' && !trailerNo) {
+        document.getElementById('truck-error-text').textContent = 'กรุณากรอกทะเบียนพ่วง';
+        document.getElementById('truck-error').classList.remove('hidden');
+        return;
+      }
+
+      document.getElementById('truck-error').classList.add('hidden');
+
+      // ✅ Replace ทับข้อมูลเดิม
+      currentBooking.truckNo = truckNo;
+      currentBooking.trailerNo = currentBooking.truckType === '22W' ? trailerNo : '';
+
+      document.getElementById('step-truck').classList.add('hidden');
+      showConfirmStep();
+    }
+  </script>
+  
+</body>
+</html>

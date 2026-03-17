@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AY Domestic — Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Sarabun', sans-serif; }
+    body { background: #0f172a; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+    .live-dot::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      background: #22c55e;
+      animation: pulse-ring 1.5s ease-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+
+  <!-- Header -->
+  <header class="bg-[#25408E] px-6 py-4 flex items-center justify-between shadow-2xl">
+    <div class="flex items-center gap-4">
+      <div class="text-3xl">🚛</div>
+      <div>
+        <h1 class="text-xl font-black tracking-tight">AY Domestic</h1>
+        <p class="text-blue-200 text-xs">Warehouse Dashboard — คนขับรถ</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <!-- วันที่ -->
+      <div class="text-right">
+        <div class="text-sm font-bold text-white" id="display-date">-</div>
+        <div class="text-xs text-blue-200" id="display-time">-</div>
+      </div>
+      <!-- Live indicator -->
+      <div class="relative flex items-center gap-2">
+        <div class="relative w-3 h-3 live-dot">
+          <div class="w-3 h-3 rounded-full bg-green-400"></div>
+        </div>
+        <span class="text-xs text-green-400 font-bold">LIVE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Stats Bar -->
+  <div class="grid grid-cols-3 gap-0 bg-slate-800/50 border-b border-slate-700">
+    <div class="px-6 py-3 text-center border-r border-slate-700">
+      <div class="text-2xl font-black text-white" id="stat-total">0</div>
+      <div class="text-xs text-slate-400">รายการทั้งหมด</div>
+    </div>
+    <div class="px-6 py-3 text-center border-r border-slate-700">
+      <div class="text-2xl font-black text-amber-400" id="stat-inprogress">0</div>
+      <div class="text-xs text-slate-400">กำลังดำเนินการ</div>
+    </div>
+    <div class="px-6 py-3 text-center">
+      <div class="text-2xl font-black text-green-400" id="stat-completed">0</div>
+      <div class="text-xs text-slate-400">เสร็จสิ้น</div>
+    </div>
+  </div>
+
+  <!-- Table Header -->
+  <div class="px-4 pt-4">
+    <div class="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+      <div class="col-span-1 text-center">คิว</div>
+      <div class="col-span-2">ชื่อคนขับ</div>
+      <div class="col-span-2 text-center">ช่วงเวลา</div>
+      <div class="col-span-2 text-center">Check-in</div>
+      <div class="col-span-2">ทะเบียน / ประเภท</div>
+      <div class="col-span-1 text-center">Ontime/Late</div>
+      <div class="col-span-2 text-center">สถานะ</div>
+    </div>
+  </div>
+
+  <!-- Booking List -->
+  <div id="booking-list" class="px-4 pb-6 space-y-2">
+    <div class="text-center py-20 text-slate-500">
+      <div class="text-4xl mb-3">⏳</div>
+      <p class="font-semibold">กำลังโหลดข้อมูล...</p>
+    </div>
+  </div>
+
+  <!-- Refresh bar -->
+  <div class="fixed bottom-0 inset-x-0 bg-slate-900/90 backdrop-blur px-6 py-2 flex items-center justify-between border-t border-slate-700">
+    <span class="text-xs text-slate-400">อัปเดตอัตโนมัติทุก 30 วินาที</span>
+    <span class="text-xs text-slate-500" id="last-update">-</span>
+  </div>
+
+  <script>
+    // ===== Clock =====
+    function updateClock() {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('th-TH', {
+        year: 'numeric', month: 'long', day: 'numeric',
+        weekday: 'long', timeZone: 'Asia/Bangkok'
+      });
+      const timeStr = now.toLocaleTimeString('th-TH', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZone: 'Asia/Bangkok'
+      });
+      document.getElementById('display-date').textContent = dateStr;
+      document.getElementById('display-time').textContent = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ===== Load Data =====
+    function loadData() {
+      google.script.run
+        .withSuccessHandler(renderDashboard)
+        .withFailureHandler((err) => {
+          document.getElementById('booking-list').innerHTML = `
+            <div class="text-center py-20 text-red-400">
+              <div class="text-4xl mb-3">⚠️</div>
+              <p class="font-semibold">โหลดข้อมูลไม่สำเร็จ</p>
+              <p class="text-xs mt-1">${err?.message || ''}</p>
+            </div>`;
+        })
+        .getAYDomesticDashboard();
+    }
+
+    function renderDashboard(res) {
+      if (!res?.success) {
+        document.getElementById('booking-list').innerHTML = `
+          <div class="text-center py-20 text-red-400">
+            <p class="font-semibold">${res?.message || 'เกิดข้อผิดพลาด'}</p>
+          </div>`;
+        return;
+      }
+
+      const bookings = res.data || [];
+
+      // Stats
+      const inProgress = bookings.filter(b => b.status === 'In Progress').length;
+      const completed  = bookings.filter(b => b.status === 'Completed').length;
+      document.getElementById('stat-total').textContent = bookings.length;
+      document.getElementById('stat-inprogress').textContent = inProgress;
+      document.getElementById('stat-completed').textContent = completed;
+
+      // Last update
+      const now = new Date();
+      document.getElementById('last-update').textContent =
+        'อัปเดตล่าสุด: ' + now.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok' });
+
+      if (bookings.length === 0) {
+        document.getElementById('booking-list').innerHTML = `
+          <div class="text-center py-20 text-slate-500">
+            <div class="text-4xl mb-3">📭</div>
+            <p class="font-semibold">ยังไม่มีรายการจองวันนี้</p>
+          </div>`;
+        return;
+      }
+
+      // Render rows
+      document.getElementById('booking-list').innerHTML = bookings.map((b, i) => {
+        const statusColor =
+          b.status === 'Completed'  ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+          b.status === 'In Progress' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+          'bg-slate-700/50 text-slate-400 border-slate-600';
+
+        const statusLabel =
+          b.status === 'Completed'  ? '✅ เสร็จสิ้น' :
+          b.status === 'In Progress' ? '🔄 กำลังดำเนินการ' :
+          '⏳ รอดำเนินการ';
+
+        const ontimeColor =
+          b.ontime === 'Ontime' ? 'text-green-400' :
+          b.ontime === 'Late'   ? 'text-red-400' :
+          'text-slate-600';
+
+        const ontimeLabel =
+          b.ontime === 'Ontime' ? '🟢 Ontime' :
+          b.ontime === 'Late'   ? '🔴 Late ' : '—';
+
+        const rowBg = b.status === 'Completed' ? 'opacity-50' :
+                      b.status === 'In Progress' ? 'border-l-4 border-amber-400' : '';
+
+        return `
+          <div class="fade-in grid grid-cols-12 gap-2 px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700 hover:bg-slate-700/60 transition ${rowBg}"
+               style="animation-delay: ${i * 0.03}s">
+
+            <!-- Queue -->
+            <div class="col-span-1 flex items-center justify-center">
+              <div class="w-9 h-9 rounded-xl bg-[#25408E] flex items-center justify-center font-black text-sm">
+                ${b.queue}
+              </div>
+            </div>
+
+            <!-- ชื่อคนขับ -->
+            <div class="col-span-2 flex items-center">
+              <span class="text-sm font-bold text-white truncate">${b.driver}</span>
+            </div>
+
+            <!-- ช่วงเวลา Plan -->
+            <div class="col-span-2 flex items-center justify-center">
+              <span class="text-xs font-semibold text-blue-300 text-center leading-tight">${b.time}</span>
+            </div>
+
+            <!-- เวลา Check-in จริง -->
+            <div class="col-span-2 flex items-center justify-center">
+              <span class="text-sm font-mono font-bold ${b.checkinTime !== '-' ? 'text-green-400' : 'text-slate-600'}">
+                ${b.checkinTime !== '-' ? '🕐 ' + b.checkinTime : '—'}
+              </span>
+            </div>
+
+            <!-- ทะเบียน + ประเภทรถ -->
+            <div class="col-span-2 flex flex-col justify-center">
+              <span class="text-xs font-mono font-bold text-slate-200">${b.truckNo}</span>
+              <span class="text-[10px] text-slate-400">${b.truckType}</span>
+            </div>
+
+            <!-- Ontime/Late -->
+            <div class="col-span-1 flex items-center justify-center">
+              <span class="text-lg ${ontimeColor}" title="${b.ontime}">${ontimeLabel}</span>
+            </div>
+
+            <!-- สถานะ -->
+            <div class="col-span-2 flex items-center justify-center">
+              <span class="text-xs font-bold px-2 py-1 rounded-lg border ${statusColor} text-center leading-tight">
+                ${statusLabel}
+              </span>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ===== Auto Refresh =====
+    loadData();
+    setInterval(loadData, 60000); // ทุก 60 วินาที
+  </script>
+
+</body>
+</html>
